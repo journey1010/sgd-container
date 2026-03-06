@@ -1,17 +1,23 @@
-FROM docker.io/library/eclipse-temurin:8-jdk-jammy
+FROM docker.io/library/eclipse-temurin:8-jre-jammy as builder
 
-ARG PAYARA_DIR=${PAYARA_DIR}
-ARG TIMEZONE=${TIMEZONE}
-
-RUN apt-get update && \
-    apt-get install -y unzip && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN mkdir -p /tmp /glassfish/tmp /glassfish/tmppcm /opt 
+RUN apt-get update && apt-get install -y  unzip && rm -rf /var/lib/apt/lists/*
 
 COPY payara5.zip /tmp/payara5.zip
 
-RUN unzip /tmp/payara5.zip -d /opt && \
+RUN mkdir -p /opt && \
+    unzip /tmp/payara5.zip -d /opt && \
     rm /tmp/payara5.zip
+
+FROM docker.io/library/eclipse-temurin:8-jre-jammy as payara
+
+ARG TIMEZONE=America/Lima
+ARG PAYARA_DIR=/opt/payara5 
+
+RUN apt-get update && apt-get \
+    ln -snf /usr/share/zoneinfo/$TIMEZONE /etc/localtime &&  echo $TIMEZONE > /etc/timezone \
+    apt-get install -y ttf-mscorefonts-installer && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /tmp /glassfish/tmp /glassfish/tmppcm /opt 
 
 CMD ["/opt/payara5/bin/asadmin", "start-domain", "--verbose", "domain1"]
