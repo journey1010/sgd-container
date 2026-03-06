@@ -13,11 +13,14 @@ FROM docker.io/library/eclipse-temurin:8-jre-jammy as payara
 ARG TIMEZONE=America/Lima
 ARG PAYARA_DIR=/opt/payara5 
 
-RUN apt-get update && apt-get \
-    ln -snf /usr/share/zoneinfo/$TIMEZONE /etc/localtime &&  echo $TIMEZONE > /etc/timezone \
-    apt-get install -y ttf-mscorefonts-installer && \
+RUN apt-get update && \
+    ln -snf /usr/share/zoneinfo/$TIMEZONE /etc/localtime &&  echo $TIMEZONE > /etc/timezone && \
+    echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections && \
+    apt-get install -y --no-install-recommends ttf-mscorefonts-installer fontconfig && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp /glassfish/tmp /glassfish/tmppcm /opt 
 
-CMD ["/opt/payara5/bin/asadmin", "start-domain", "--verbose", "domain1"]  
+COPY --from=builder /opt/payara5 /opt/payara5
+
+CMD ["/opt/payara5/bin/asadmin", "start-domain", "--verbose", "domain1"]
