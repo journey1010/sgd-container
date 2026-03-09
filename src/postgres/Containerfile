@@ -1,7 +1,32 @@
-FROM postgres:16
+FROM docker.io/library/postgres:16-alpine
 
-ARG POSTGRES_USER=${POSTGRES_USER}
-ARG POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-ARG POSTGRES_DB=${POSTGRES_DBg}
+# 1. Parámetros de construcción (Build Arguments)
+# Estos pueden ser sobrescritos con --build-arg al construir la imagen
+ARG DEFAULT_USER=postgres
+ARG DEFAULT_DB=IDOSGD_GOREL
 
+# 2. Variables de entorno (Runtime Environment)
+# Estas pueden ser sobrescritas con -e al ejecutar el contenedor
+ENV POSTGRES_USER=$DEFAULT_USER \
+    POSTGRES_PASSWORD=postgres \
+    POSTGRES_DB=$DEFAULT_DB
 
+# 3. Preparación de archivos para la inicialización
+# El dump SQL lo movemos a /tmp para que no se ejecute directamente
+COPY IDOSGD_PCM_POSTGRESQL_v3.6.sql /tmp/dump.sql
+
+# El script SH se pone en /docker-entrypoint-initdb.d/ para ejecutarse al inicio
+COPY init-db.sh /docker-entrypoint-initdb.d/01-init-db.sh
+
+# Dar permisos de ejecución al script
+RUN chmod +x /docker-entrypoint-initdb.d/01-init-db.sh
+
+# 4. Configuración de almacenamiento y red
+# Declaramos el volumen por defecto para persistencia de datos
+VOLUME ["/var/lib/postgresql/data"]
+
+# Puerto estándar de PostgreSQL
+EXPOSE 5432
+
+# Iniciar el servicio por defecto
+CMD ["postgres"]
